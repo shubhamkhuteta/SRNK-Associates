@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload Documents</title>
+    <title>Login and Upload Documents</title>
 
     <!-- FirebaseUI for Authentication -->
     <script src="https://www.gstatic.com/firebasejs/ui/6.0.0/firebase-ui-auth.js"></script>
@@ -23,7 +23,7 @@
         <input type="email" id="email" placeholder="Enter your email" required>
         <label for="password">Password:</label>
         <input type="password" id="password" placeholder="Enter your password" required>
-        <button onclick="loginWithEmail()">Login</button>
+        <button id="login-button">Login</button>
     </div>
 
     <!-- Sign-up Form -->
@@ -33,32 +33,32 @@
         <input type="email" id="new-email" placeholder="Enter your email" required>
         <label for="new-password">Password:</label>
         <input type="password" id="new-password" placeholder="Enter your password" required>
-        <button onclick="signupWithEmail()">Sign Up</button>
+        <button id="signup-button">Sign Up</button>
     </div>
 
     <!-- Document Upload Form (Visible only when logged in) -->
     <div id="upload-form" style="display:none;">
         <h3>Upload Your Documents</h3>
         <input type="file" id="file-upload" accept="application/pdf,image/*" />
-        <button onclick="uploadDocument()">Upload</button>
+        <button id="upload-button">Upload</button>
         <div id="upload-status"></div>
     </div>
 
     <!-- This message will show the current login status -->
     <div id="user-status">Not logged in</div>
 
-    <script type="module">
+    <script>
         // Your Firebase configuration
         const firebaseConfig = {
-          apiKey: "AIzaSyB9aamikPRI-98-Tv9IG65vvk4qkO-qTnE",
-          authDomain: "srnk-associates.firebaseapp.com",
-          projectId: "srnk-associates",
-          storageBucket: "srnk-associates.appspot.com",
-          messagingSenderId: "138345212232",
-          appId: "1:138345212232:web:68746eb7b305a16da86b7d"
+            apiKey: "AIzaSyB9aamikPRI-98-Tv9IG65vvk4qkO-qTnE",
+            authDomain: "srnk-associates.firebaseapp.com",
+            projectId: "srnk-associates",
+            storageBucket: "srnk-associates.appspot.com",
+            messagingSenderId: "138345212232",
+            appId: "1:138345212232:web:68746eb7b305a16da86b7d"
         };
 
-        // Initialize Firebase with compatibility SDK
+        // Initialize Firebase
         const firebase = window.firebase;
         firebase.initializeApp(firebaseConfig);
 
@@ -67,82 +67,86 @@
 
         // Listen to authentication state changes
         auth.onAuthStateChanged(user => {
-          if (user) {
-            document.getElementById('user-status').innerText = `Logged in as: ${user.email}`;
-            document.getElementById('login-form').style.display = 'none';
-            document.getElementById('signup-form').style.display = 'none';
-            document.getElementById('upload-form').style.display = 'block'; // Show upload form
-          } else {
-            document.getElementById('user-status').innerText = "Not logged in";
-            document.getElementById('login-form').style.display = 'block';
-            document.getElementById('signup-form').style.display = 'block';
-            document.getElementById('upload-form').style.display = 'none'; // Hide upload form
-          }
+            if (user) {
+                document.getElementById('user-status').innerText = `Logged in as: ${user.email}`;
+                document.getElementById('login-form').style.display = 'none';
+                document.getElementById('signup-form').style.display = 'none';
+                document.getElementById('upload-form').style.display = 'block'; // Show upload form
+            } else {
+                document.getElementById('user-status').innerText = "Not logged in";
+                document.getElementById('login-form').style.display = 'block';
+                document.getElementById('signup-form').style.display = 'block';
+                document.getElementById('upload-form').style.display = 'none'; // Hide upload form
+            }
         });
 
         // Function to log in with email and password
         function loginWithEmail() {
-          const email = document.getElementById('email').value;
-          const password = document.getElementById('password').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
 
-          auth.signInWithEmailAndPassword(email, password)
-            .then((userCredential) => {
-              const user = userCredential.user;
-              console.log('Logged in as:', user.email);
-            })
-            .catch((error) => {
-              const errorCode = error.code;
-              const errorMessage = error.message;
-              alert(`Error: ${errorMessage}`);
-            });
+            auth.signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    console.log('Logged in as:', user.email);
+                })
+                .catch((error) => {
+                    const errorCode = error.code;
+                    const errorMessage = error.message;
+                    alert(`Error: ${errorMessage}`);
+                });
         }
 
         // Function to sign up with email and password
         function signupWithEmail() {
-          const email = document.getElementById('new-email').value;
-          const password = document.getElementById('new-password').value;
+            const email = document.getElementById('new-email').value;
+            const password = document.getElementById('new-password').value;
 
-          auth.createUserWithEmailAndPassword(email, password)
-            .then((userCredential) => {
-              const user = userCredential.user;
-              console.log('Signed up as:', user.email);
-            })
-            .catch((error) => {
-              const errorCode = error.code;
-              const errorMessage = error.message;
-              alert(`Error: ${errorMessage}`);
-            });
+            auth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    console.log('Signed up as:', user.email);
+                })
+                .catch((error) => {
+                    const errorCode = error.code;
+                    const errorMessage = error.message;
+                    alert(`Error: ${errorMessage}`);
+                });
         }
 
         // Function to upload document to Firebase Storage
         function uploadDocument() {
-          const file = document.getElementById('file-upload').files[0];
+            const file = document.getElementById('file-upload').files[0];
 
-          if (file) {
-            const user = auth.currentUser;
-            const storageRef = storage.ref().child(`documents/${user.uid}/${file.name}`);
-            const uploadTask = storageRef.put(file);
+            if (file) {
+                const user = auth.currentUser;
+                const storageRef = storage.ref().child(`documents/${user.uid}/${file.name}`);
+                const uploadTask = storageRef.put(file);
 
-            uploadTask.on('state_changed', 
-              (snapshot) => {
-                // Track upload progress (optional)
-                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                document.getElementById('upload-status').innerText = `Upload is ${progress}% done`;
-              }, 
-              (error) => {
-                // Handle errors
-                alert('Upload failed: ' + error.message);
-              }, 
-              () => {
-                // Upload complete
-                document.getElementById('upload-status').innerText = 'Upload successful!';
-                console.log('Document uploaded successfully');
-              }
-            );
-          } else {
-            alert('Please select a document to upload.');
-          }
+                uploadTask.on('state_changed', 
+                    (snapshot) => {
+                        // Track upload progress
+                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                        document.getElementById('upload-status').innerText = `Upload is ${progress}% done`;
+                    }, 
+                    (error) => {
+                        // Handle errors
+                        alert('Upload failed: ' + error.message);
+                    }, 
+                    () => {
+                        // Upload complete
+                        document.getElementById('upload-status').innerText = 'Upload successful!';
+                        console.log('Document uploaded successfully');
+                    }
+                );
+            } else {
+                alert('Please select a document to upload.');
+            }
         }
+
+        // Attach event listeners
+        document.getElementById('login-button').addEventListener('click', loginWithEmail);
+        document.getElementById('signup-button').addEventListener('click', signupWithEmail);
+        document.getElementById('upload-button').addEventListener('click', uploadDocument);
     </script>
 </body>
-</html>
