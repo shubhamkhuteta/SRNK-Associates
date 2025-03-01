@@ -9,12 +9,14 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
     <!-- Firebase Authentication SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js"></script>
-
+    <!-- FirebaseUI for Authentication -->
+    <script src="https://cdn.firebase.com/libs/firebaseui/4.8.0/firebaseui.js"></script>
+    <link type="text/css" rel="stylesheet" href="https://cdn.firebase.com/libs/firebaseui/4.8.0/firebaseui.css" />
 </head>
 <body>
     <h2>Login with Google</h2>
-    <button onclick="signInWithGoogle()">Login with Google</button>
-    <button onclick="signOut()">Logout</button>
+    <div id="firebaseui-auth-container"></div>
+    <div id="loader">Loading...</div>
     <p id="user-status">Not logged in</p>
 
     <script>
@@ -31,22 +33,29 @@
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
 
-        function signInWithGoogle() {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            firebase.auth().signInWithPopup(provider).then(result => {
-                document.getElementById('user-status').innerText = `Logged in as: ${result.user.displayName}`;
-            }).catch(error => {
-                console.error("Login Failed!", error);
-            });
-        }
+        // FirebaseUI config.
+        var uiConfig = {
+          signInSuccessUrl: 'https://shubhamkhuteta.github.io',
+          signInOptions: [
+            firebase.auth.GoogleAuthProvider.PROVIDER_ID
+          ],
+          tosUrl: '<your-tos-url>',
+          privacyPolicyUrl: '<your-privacy-policy-url>'
+        };
 
-        function signOut() {
-            firebase.auth().signOut().then(() => {
-                document.getElementById('user-status').innerText = "Not logged in";
-            }).catch(error => {
-                console.error("Logout Failed!", error);
-            });
-        }
+        // Initialize the FirebaseUI Widget using Firebase.
+        var ui = new firebaseui.auth.AuthUI(firebase.auth());
+        // The start method will wait until the DOM is loaded.
+        ui.start('#firebaseui-auth-container', uiConfig);
+
+        // Listen to authentication state changes
+        firebase.auth().onAuthStateChanged(user => {
+          if (user) {
+            document.getElementById('user-status').innerText = `Logged in as: ${user.displayName}`;
+          } else {
+            document.getElementById('user-status').innerText = "Not logged in";
+          }
+        });
     </script>
 </body>
 </html>
