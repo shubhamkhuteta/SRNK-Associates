@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Google Login with Firebase</title>
+    <title>Upload Documents</title>
 
     <!-- FirebaseUI for Authentication -->
     <script src="https://www.gstatic.com/firebasejs/ui/6.0.0/firebase-ui-auth.js"></script>
@@ -12,19 +12,43 @@
     <!-- Firebase Compatibility SDK for accessing firebase.initializeApp() -->
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-storage-compat.js"></script>
 </head>
 <body>
-    <h2>Login with Google</h2>
+    <h2>Login with Email and Password</h2>
 
-    <!-- This is where the login button will appear -->
-    <div id="firebaseui-auth-container"></div>
-    
+    <!-- Login Form -->
+    <div id="login-form">
+        <label for="email">Email:</label>
+        <input type="email" id="email" placeholder="Enter your email" required>
+        <label for="password">Password:</label>
+        <input type="password" id="password" placeholder="Enter your password" required>
+        <button onclick="loginWithEmail()">Login</button>
+    </div>
+
+    <!-- Sign-up Form -->
+    <div id="signup-form">
+        <h3>Don't have an account?</h3>
+        <label for="new-email">Email:</label>
+        <input type="email" id="new-email" placeholder="Enter your email" required>
+        <label for="new-password">Password:</label>
+        <input type="password" id="new-password" placeholder="Enter your password" required>
+        <button onclick="signupWithEmail()">Sign Up</button>
+    </div>
+
+    <!-- Document Upload Form (Visible only when logged in) -->
+    <div id="upload-form" style="display:none;">
+        <h3>Upload Your Documents</h3>
+        <input type="file" id="file-upload" accept="application/pdf,image/*" />
+        <button onclick="uploadDocument()">Upload</button>
+        <div id="upload-status"></div>
+    </div>
+
     <!-- This message will show the current login status -->
-    <div id="loader">Loading...</div>
-    <p id="user-status">Not logged in</p>
+    <div id="user-status">Not logged in</div>
 
     <script type="module">
-        // Your web app's Firebase configuration
+        // Your Firebase configuration
         const firebaseConfig = {
           apiKey: "AIzaSyB9aamikPRI-98-Tv9IG65vvk4qkO-qTnE",
           authDomain: "srnk-associates.firebaseapp.com",
@@ -39,31 +63,86 @@
         firebase.initializeApp(firebaseConfig);
 
         const auth = firebase.auth();
-
-        // FirebaseUI config for Google sign-in
-        const uiConfig = {
-          signInSuccessUrl: 'https://shubhamkhuteta.github.io/SRNK-Associates', // Redirect URL after successful login
-          signInOptions: [
-            firebase.auth.GoogleAuthProvider.PROVIDER_ID,  // Google Login Option
-          ],
-          tosUrl: 'https://username.github.io/terms.html', // Terms of Service URL
-          privacyPolicyUrl: 'https://username.github.io/privacy.html' // Privacy Policy URL
-        };
-
-        // Initialize the FirebaseUI Widget using Firebase Auth instance
-        const ui = new firebaseui.auth.AuthUI(auth);
-
-        // Start the FirebaseUI auth flow
-        ui.start('#firebaseui-auth-container', uiConfig);
+        const storage = firebase.storage();
 
         // Listen to authentication state changes
         auth.onAuthStateChanged(user => {
           if (user) {
-            document.getElementById('user-status').innerText = `Logged in as: ${user.displayName}`;
+            document.getElementById('user-status').innerText = `Logged in as: ${user.email}`;
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('signup-form').style.display = 'none';
+            document.getElementById('upload-form').style.display = 'block'; // Show upload form
           } else {
             document.getElementById('user-status').innerText = "Not logged in";
+            document.getElementById('login-form').style.display = 'block';
+            document.getElementById('signup-form').style.display = 'block';
+            document.getElementById('upload-form').style.display = 'none'; // Hide upload form
           }
         });
+
+        // Function to log in with email and password
+        function loginWithEmail() {
+          const email = document.getElementById('email').value;
+          const password = document.getElementById('password').value;
+
+          auth.signInWithEmailAndPassword(email, password)
+            .then((userCredential) => {
+              const user = userCredential.user;
+              console.log('Logged in as:', user.email);
+            })
+            .catch((error) => {
+              const errorCode = error.code;
+              const errorMessage = error.message;
+              alert(`Error: ${errorMessage}`);
+            });
+        }
+
+        // Function to sign up with email and password
+        function signupWithEmail() {
+          const email = document.getElementById('new-email').value;
+          const password = document.getElementById('new-password').value;
+
+          auth.createUserWithEmailAndPassword(email, password)
+            .then((userCredential) => {
+              const user = userCredential.user;
+              console.log('Signed up as:', user.email);
+            })
+            .catch((error) => {
+              const errorCode = error.code;
+              const errorMessage = error.message;
+              alert(`Error: ${errorMessage}`);
+            });
+        }
+
+        // Function to upload document to Firebase Storage
+        function uploadDocument() {
+          const file = document.getElementById('file-upload').files[0];
+
+          if (file) {
+            const user = auth.currentUser;
+            const storageRef = storage.ref().child(`documents/${user.uid}/${file.name}`);
+            const uploadTask = storageRef.put(file);
+
+            uploadTask.on('state_changed', 
+              (snapshot) => {
+                // Track upload progress (optional)
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                document.getElementById('upload-status').innerText = `Upload is ${progress}% done`;
+              }, 
+              (error) => {
+                // Handle errors
+                alert('Upload failed: ' + error.message);
+              }, 
+              () => {
+                // Upload complete
+                document.getElementById('upload-status').innerText = 'Upload successful!';
+                console.log('Document uploaded successfully');
+              }
+            );
+          } else {
+            alert('Please select a document to upload.');
+          }
+        }
     </script>
 </body>
 </html>
