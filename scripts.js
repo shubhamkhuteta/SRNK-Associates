@@ -1,13 +1,13 @@
 document.addEventListener('DOMContentLoaded', () => {
-
-    // Get references to DOM elements
+    
+    // Ensure the elements exist before adding event listeners
     const uploadButton = document.getElementById('upload-button');
     const uploadStatus = document.getElementById('upload-status');
     const loginButton = document.getElementById('login-button');
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
 
-    // Handle the document upload
+    // If the uploadButton element exists, add event listener
     if (uploadButton) {
         uploadButton.addEventListener('click', () => {
             const file = document.getElementById('file-upload').files[0];
@@ -23,24 +23,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 uploadStatus.innerHTML = 'Please select a file.';
             }
         });
+    } else {
+        console.error('Upload button not found.');
     }
 
-    // Handle login functionality (In practice, integrate with Firebase or your backend)
+    // If the loginButton element exists, add event listener
     if (loginButton) {
         loginButton.addEventListener('click', () => {
             const email = emailInput.value;
             const password = passwordInput.value;
 
             if (email && password) {
-                // This would normally be where you authenticate with Firebase or backend
+                // Simulate login (replace with actual authentication logic)
                 console.log(`Logged in with email: ${email}`);
                 
                 // Redirect to the upload page after successful login (this is a placeholder)
-                window.location.href = 'upload.html'; 
+                window.location.href = 'upload.html';
             } else {
                 alert('Please enter valid credentials.');
             }
         });
+    } else {
+        console.error('Login button not found.');
     }
 
     // Example functionality for document download (in a real-world case, this would connect to a server)
@@ -62,6 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
             listItem.innerHTML = doc.name;
             documentsList.appendChild(listItem);
         });
+    } else {
+        console.error('Documents list not found.');
     }
-
 });
