@@ -25,7 +25,7 @@
           apiKey: "AIzaSyB9aamikPRI-98-Tv9IG65vvk4qkO-qTnE",
           authDomain: "srnk-associates.firebaseapp.com",
           projectId: "srnk-associates",
-          storageBucket: "srnk-associates.firebasestorage.app",
+          storageBucket: "srnk-associates.appspot.com",
           messagingSenderId: "138345212232",
           appId: "1:138345212232:web:1593d3ab9727f29aa86b7d"
         };
@@ -35,12 +35,12 @@
 
         // FirebaseUI config.
         var uiConfig = {
-          signInSuccessUrl: 'https://shubhamkhuteta.github.io',
+          signInSuccessUrl: 'https://username.github.io',
           signInOptions: [
             firebase.auth.GoogleAuthProvider.PROVIDER_ID
           ],
-          tosUrl: '<your-tos-url>',
-          privacyPolicyUrl: '<your-privacy-policy-url>'
+          tosUrl: 'https://username.github.io/terms.html',
+          privacyPolicyUrl: 'https://username.github.io/privacy.html'
         };
 
         // Initialize the FirebaseUI Widget using Firebase.
@@ -51,7 +51,7 @@
         // Listen to authentication state changes
         firebase.auth().onAuthStateChanged(user => {
           if (user) {
-            document.getElementById('user-status').innerText = `Logged in as: ${user.displayName}`;
+           ('user-status').innerText = `Logged in as: ${user.displayName}`;
           } else {
             document.getElementById('user-status').innerText = "Not logged in";
           }
