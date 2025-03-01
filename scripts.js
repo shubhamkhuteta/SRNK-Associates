@@ -1,20 +1,19 @@
 document.addEventListener('DOMContentLoaded', () => {
-    
-    // Ensure the elements exist before adding event listeners
+    // Ensure elements exist before adding event listeners
     const uploadButton = document.getElementById('upload-button');
     const uploadStatus = document.getElementById('upload-status');
     const loginButton = document.getElementById('login-button');
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
+    const documentsList = document.getElementById('documents-list');
 
-    // If the uploadButton element exists, add event listener
+    // Check if the elements are present before attaching event listeners
     if (uploadButton) {
         uploadButton.addEventListener('click', () => {
             const file = document.getElementById('file-upload').files[0];
 
             if (file) {
                 uploadStatus.innerHTML = 'Uploading...';
-
                 // Simulate a delay for document upload
                 setTimeout(() => {
                     uploadStatus.innerHTML = 'Document uploaded successfully!';
@@ -24,31 +23,25 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     } else {
-        console.error('Upload button not found.');
+        console.error('Upload button not found in the DOM.');
     }
 
-    // If the loginButton element exists, add event listener
     if (loginButton) {
         loginButton.addEventListener('click', () => {
             const email = emailInput.value;
             const password = passwordInput.value;
 
             if (email && password) {
-                // Simulate login (replace with actual authentication logic)
                 console.log(`Logged in with email: ${email}`);
-                
-                // Redirect to the upload page after successful login (this is a placeholder)
-                window.location.href = 'upload.html';
+                window.location.href = 'upload.html'; // Redirect to the upload page
             } else {
                 alert('Please enter valid credentials.');
             }
         });
     } else {
-        console.error('Login button not found.');
+        console.error('Login button not found in the DOM.');
     }
 
-    // Example functionality for document download (in a real-world case, this would connect to a server)
-    const documentsList = document.getElementById('documents-list');
     if (documentsList) {
         // Simulate a list of documents available for download
         const documents = [
@@ -67,6 +60,6 @@ document.addEventListener('DOMContentLoaded', () => {
             documentsList.appendChild(listItem);
         });
     } else {
-        console.error('Documents list not found.');
+        console.error('Documents list container not found.');
     }
 });
