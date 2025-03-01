@@ -1,1 +1,23 @@
 
+name: Process Uploaded Files
+
+on:
+  push:
+    paths:
+      - 'uploads/**'
+
+jobs:
+  process_files:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: List Uploaded Files
+        run: ls -lh uploads/
+
+      - name: Process Files
+        run: |
+          for file in uploads/*; do
+            echo "Processing file: $file"
+          done
