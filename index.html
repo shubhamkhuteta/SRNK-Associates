@@ -38,6 +38,9 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
+        // Expose firebase instance to the global scope (for Firebase UI compatibility)
+        window.firebase = app;
+
         // FirebaseUI config for Google sign-in
         const uiConfig = {
           signInSuccessUrl: 'https://shubhamkhuteta.github.io', // Redirect URL after successful login
