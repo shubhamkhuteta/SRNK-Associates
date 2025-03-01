@@ -1,3 +1,19 @@
+It seems like the Firebase SDK scripts you're using are not being loaded correctly. Let's address each error:
+
+### 1. `Unexpected token 'export'`
+This error occurs because the script is being treated as a module, but it should be included as a regular script.
+
+### 2. `Cannot use import statement outside a module`
+This error indicates that the script is trying to use ES6 module syntax (`import`) in a context where it's not supported.
+
+### 3. `firebase is not defined`
+This error occurs because the Firebase SDK is not properly initialized or loaded before you try to use it.
+
+### Corrected `index.html`
+
+Here’s the corrected version of your `index.html` file with the proper script URLs and initialization:
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,9 +22,9 @@
     <title>Google Login with Firebase</title>
 
     <!-- Firebase App SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
     <!-- Firebase Authentication SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
     <!-- FirebaseUI for Authentication -->
     <script src="https://www.gstatic.com/firebasejs/ui/6.0.0/firebase-ui-auth.js"></script>
     <link type="text/css" rel="stylesheet" href="https://www.gstatic.com/firebasejs/ui/6.0.0/firebase-ui-auth.css" />
