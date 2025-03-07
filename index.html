@@ -8,7 +8,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-storage-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
 
     <style>
         body {
@@ -41,7 +40,6 @@
 </head>
 <body>
 
-    <!-- Login/Register Section -->
     <div id="auth-section" class="container">
         <h2>Login</h2>
         <input type="email" id="email" placeholder="Email" required>
@@ -54,7 +52,6 @@
         <button id="signup-button">Sign Up</button>
     </div>
 
-    <!-- Upload Section (Hidden until user logs in) -->
     <div id="upload-section" class="container">
         <h2>Welcome, <span id="user-email"></span></h2>
         <button id="logout-button" style="background: red; color: white;">Logout</button>
@@ -69,7 +66,6 @@
     </div>
 
     <script>
-        // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyB9aamikPRI-98-Tv9IG65vvk4qkO-qTnE",
             authDomain: "srnk-associates.firebaseapp.com",
@@ -79,13 +75,10 @@
             appId: "1:138345212232:web:68746eb7b305a16da86b7d"
         };
 
-        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const storage = firebase.storage();
-        const db = firebase.firestore();
 
-        // Auth State Listener
         auth.onAuthStateChanged(user => {
             if (user) {
                 document.getElementById('auth-section').style.display = 'none';
@@ -98,7 +91,6 @@
             }
         });
 
-        // Login Function
         document.getElementById('login-button').addEventListener('click', () => {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
@@ -106,7 +98,6 @@
                 .catch(error => alert(error.message));
         });
 
-        // Signup Function
         document.getElementById('signup-button').addEventListener('click', () => {
             const email = document.getElementById('new-email').value;
             const password = document.getElementById('new-password').value;
@@ -114,12 +105,10 @@
                 .catch(error => alert(error.message));
         });
 
-        // Logout Function
         document.getElementById('logout-button').addEventListener('click', () => {
             auth.signOut();
         });
 
-        // Upload File Function
         document.getElementById('upload-button').addEventListener('click', () => {
             const file = document.getElementById('file-upload').files[0];
             if (!file) {
@@ -128,52 +117,57 @@
             }
 
             const user = auth.currentUser;
-            const userEmail = user.email.replace(/\./g, "_"); // Firebase doesn't allow "." in paths
-            const storageRef = firebase.storage().ref(`documents/${userEmail}/${file.name}`);
+            const userEmail = encodeURIComponent(user.email); 
+            const storageRef = storage.ref(`documents/${userEmail}/${file.name}`);
             const uploadTask = storageRef.put(file);
 
             uploadTask.on('state_changed',
                 (snapshot) => {
-                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    document.getElementById('upload-status').innerText = `Upload is ${progress}% done`;
+                    const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+                    document.getElementById('upload-status').innerText = `Uploading... ${progress}%`;
                 },
                 (error) => alert('Upload failed: ' + error.message),
-                () => {
-                    uploadTask.snapshot.ref.getDownloadURL().then(downloadURL => {
-                        db.collection("users").doc(userEmail).collection("files").add({
-                            name: file.name,
-                            url: downloadURL,
-                            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                        });
+                async () => {
+                    try {
+                        const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
                         document.getElementById('upload-status').innerText = "Upload successful!";
                         loadUserFiles(user.email);
-                    });
+                    } catch (error) {
+                        console.error("Error getting download URL:", error);
+                    }
                 }
             );
         });
 
-        // Load User Files
-        function loadUserFiles(email) {
-            const userEmail = email.replace(/\./g, "_");
+        async function loadUserFiles(email) {
+            const userEmail = encodeURIComponent(email); 
             const fileList = document.getElementById('file-list');
             fileList.innerHTML = "Loading files...";
             
-            db.collection("users").doc(userEmail).collection("files").orderBy("timestamp", "desc").get()
-                .then(snapshot => {
-                    fileList.innerHTML = "";
-                    if (snapshot.empty) {
-                        fileList.innerHTML = "No files uploaded yet.";
-                        return;
-                    }
-                    snapshot.forEach(doc => {
-                        const fileData = doc.data();
+            try {
+                const userFolderRef = storage.ref(`documents/${userEmail}/`);
+                const res = await userFolderRef.listAll();
+
+                if (res.items.length === 0) {
+                    fileList.innerHTML = "No files uploaded yet.";
+                    return;
+                }
+
+                fileList.innerHTML = "";
+                for (const item of res.items) {
+                    try {
+                        const url = await item.getDownloadURL();
                         const fileItem = document.createElement("div");
                         fileItem.classList.add("file-item");
-                        fileItem.innerHTML = `<a href="${fileData.url}" target="_blank">${fileData.name}</a>`;
+                        fileItem.innerHTML = `<a href="${url}" target="_blank">${item.name}</a>`;
                         fileList.appendChild(fileItem);
-                    });
-                })
-                .catch(error => console.error("Error loading files:", error));
+                    } catch (error) {
+                        console.error("Error getting file URL:", error);
+                    }
+                }
+            } catch (error) {
+                console.error("Error listing files:", error);
+            }
         }
     </script>
 
