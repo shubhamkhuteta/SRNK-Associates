@@ -129,7 +129,7 @@
 
             const user = auth.currentUser;
             const userEmail = user.email.replace(/\./g, "_"); // Firebase doesn't allow "." in paths
-            const storageRef = storage.ref().child(`documents/${userEmail}/${file.name}`);
+            const storageRef = firebase.storage().ref(`documents/${userEmail}/${file.name}`);
             const uploadTask = storageRef.put(file);
 
             uploadTask.on('state_changed',
