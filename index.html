@@ -109,35 +109,47 @@
             auth.signOut();
         });
 
+        // Upload File Function
         document.getElementById('upload-button').addEventListener('click', () => {
             const file = document.getElementById('file-upload').files[0];
             if (!file) {
                 alert("Please select a file.");
                 return;
             }
-
+        
             const user = auth.currentUser;
-            const userEmail = encodeURIComponent(user.email); 
-            const storageRef = storage.ref(`documents/${userEmail}/${file.name}`);
+            if (!user) {
+                alert("No user logged in.");
+                return;
+            }
+        
+            const userEmail = encodeURIComponent(user.email); // Properly encode email for consistent folder naming
+            const storageRef = firebase.storage().ref(`documents/${userEmail}/${file.name}`);
             const uploadTask = storageRef.put(file);
-
+        
             uploadTask.on('state_changed',
                 (snapshot) => {
-                    const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
-                    document.getElementById('upload-status').innerText = `Uploading... ${progress}%`;
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    document.getElementById('upload-status').innerText = `Upload is ${progress.toFixed(0)}% done`;
                 },
                 (error) => alert('Upload failed: ' + error.message),
-                async () => {
-                    try {
-                        const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
-                        document.getElementById('upload-status').innerText = "Upload successful!";
-                        loadUserFiles(user.email);
-                    } catch (error) {
-                        console.error("Error getting download URL:", error);
-                    }
+                () => {
+                    uploadTask.snapshot.ref.getDownloadURL().then(downloadURL => {
+                        db.collection("users").doc(userEmail).collection("files").add({
+                            name: file.name,
+                            url: downloadURL,
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                        })
+                        .then(() => {
+                            document.getElementById('upload-status').innerText = "Upload successful!";
+                            loadUserFiles(user.email); // Reload files after upload
+                        })
+                        .catch(error => alert("Error saving file info: " + error.message));
+                    });
                 }
             );
         });
+
 
         async function loadUserFiles(email) {
             const userEmail = encodeURIComponent(email); 
