@@ -3,153 +3,177 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login and Upload Documents</title>
-
-    <!-- FirebaseUI for Authentication (This is not needed for this functionality) -->
-    <!--<script src="https://www.gstatic.com/firebasejs/ui/6.0.0/firebase-ui-auth.js"></script>
-    <link type="text/css" rel="stylesheet" href="https://www.gstatic.com/firebasejs/ui/6.0.0/firebase-ui-auth.css" />-->
-
-    <!-- Firebase Compatibility SDK for accessing firebase.initializeApp() -->
+    <title>Login & File Upload</title>
+    
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+        .container {
+            max-width: 400px;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+        input, button {
+            width: 100%;
+            margin: 8px 0;
+            padding: 10px;
+        }
+        #upload-section, #file-list {
+            display: none;
+        }
+        .file-item {
+            margin: 5px;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+    </style>
 </head>
 <body>
-    <h2>Login with Email and Password</h2>
 
-    <!-- Login Form -->
-    <div id="login-form">
-        <label for="email">Email:</label>
-        <input type="email" id="email" placeholder="Enter your email" required>
-        <label for="password">Password:</label>
-        <input type="password" id="password" placeholder="Enter your password" required>
+    <!-- Login/Register Section -->
+    <div id="auth-section" class="container">
+        <h2>Login</h2>
+        <input type="email" id="email" placeholder="Email" required>
+        <input type="password" id="password" placeholder="Password" required>
         <button id="login-button">Login</button>
-    </div>
 
-    <!-- Sign-up Form -->
-    <div id="signup-form">
-        <h3>Don't have an account?</h3>
-        <label for="new-email">Email:</label>
-        <input type="email" id="new-email" placeholder="Enter your email" required>
-        <label for="new-password">Password:</label>
-        <input type="password" id="new-password" placeholder="Enter your password" required>
+        <h3>New user? Register below</h3>
+        <input type="email" id="new-email" placeholder="Email" required>
+        <input type="password" id="new-password" placeholder="Password" required>
         <button id="signup-button">Sign Up</button>
     </div>
 
-    <!-- Document Upload Form (Visible only when logged in) -->
-    <div id="upload-form" style="display:none;">
-        <h3>Upload Your Documents</h3>
-        <input type="file" id="file-upload" accept="application/pdf,image/*" />
+    <!-- Upload Section (Hidden until user logs in) -->
+    <div id="upload-section" class="container">
+        <h2>Welcome, <span id="user-email"></span></h2>
+        <button id="logout-button" style="background: red; color: white;">Logout</button>
+
+        <h3>Upload a Document</h3>
+        <input type="file" id="file-upload" accept="application/pdf,image/*">
         <button id="upload-button">Upload</button>
         <div id="upload-status"></div>
+
+        <h3>Your Files</h3>
+        <div id="file-list"></div>
     </div>
 
-    <!-- This message will show the current login status -->
-    <div id="user-status">Not logged in</div>
-
     <script>
-        // Your Firebase configuration
+        // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyB9aamikPRI-98-Tv9IG65vvk4qkO-qTnE",
             authDomain: "srnk-associates.firebaseapp.com",
             projectId: "srnk-associates",
-            storageBucket: "srnk-associates.firebasestorage.app",
+            storageBucket: "srnk-associates.appspot.com",
             messagingSenderId: "138345212232",
             appId: "1:138345212232:web:68746eb7b305a16da86b7d"
         };
 
         // Initialize Firebase
-        const firebase = window.firebase;
         firebase.initializeApp(firebaseConfig);
-
         const auth = firebase.auth();
         const storage = firebase.storage();
+        const db = firebase.firestore();
 
-        // Listen to authentication state changes
+        // Auth State Listener
         auth.onAuthStateChanged(user => {
             if (user) {
-                document.getElementById('user-status').innerText = `Logged in as: ${user.email}`;
-                document.getElementById('login-form').style.display = 'none';
-                document.getElementById('signup-form').style.display = 'none';
-                document.getElementById('upload-form').style.display = 'block'; // Show upload form
+                document.getElementById('auth-section').style.display = 'none';
+                document.getElementById('upload-section').style.display = 'block';
+                document.getElementById('user-email').innerText = user.email;
+                loadUserFiles(user.uid);
             } else {
-                document.getElementById('user-status').innerText = "Not logged in";
-                document.getElementById('login-form').style.display = 'block';
-                document.getElementById('signup-form').style.display = 'block';
-                document.getElementById('upload-form').style.display = 'none'; // Hide upload form
+                document.getElementById('auth-section').style.display = 'block';
+                document.getElementById('upload-section').style.display = 'none';
             }
         });
 
-        // Function to log in with email and password
-        function loginWithEmail() {
+        // Login Function
+        document.getElementById('login-button').addEventListener('click', () => {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-
             auth.signInWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    const user = userCredential.user;
-                    console.log('Logged in as:', user.email);
-                })
-                .catch((error) => {
-                    const errorCode = error.code;
-                    const errorMessage = error.message;
-                    alert(`Error: ${errorMessage}`);
-                });
-        }
+                .catch(error => alert(error.message));
+        });
 
-        // Function to sign up with email and password
-        function signupWithEmail() {
+        // Signup Function
+        document.getElementById('signup-button').addEventListener('click', () => {
             const email = document.getElementById('new-email').value;
             const password = document.getElementById('new-password').value;
-
             auth.createUserWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    const user = userCredential.user;
-                    console.log('Signed up as:', user.email);
-                })
-                .catch((error) => {
-                    const errorCode = error.code;
-                    const errorMessage = error.message;
-                    alert(`Error: ${errorMessage}`);
-                });
-        }
+                .catch(error => alert(error.message));
+        });
 
-        // Function to upload document to Firebase Storage
-        function uploadDocument() {
+        // Logout Function
+        document.getElementById('logout-button').addEventListener('click', () => {
+            auth.signOut();
+        });
+
+        // Upload File Function
+        document.getElementById('upload-button').addEventListener('click', () => {
             const file = document.getElementById('file-upload').files[0];
-
-            if (file) {
-                const user = auth.currentUser;
-                const storageRef = storage.ref().child(`documents/${user.uid}/${file.name}`); // Correct path
-                const uploadTask = storageRef.put(file);
-
-                uploadTask.on('state_changed', 
-                    (snapshot) => {
-                        // Track upload progress
-                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                        document.getElementById('upload-status').innerText = `Upload is ${progress}% done`;
-                    }, 
-                    (error) => {
-                        // Handle errors
-                        alert('Upload failed: ' + error.message);
-                    }, 
-                    () => {
-                        // Upload complete
-                        getDownloadURL(uploadTask.snapshot.ref).then(downloadURL => { // Added getDownloadURL
-                            document.getElementById('upload-status').innerText = `Upload successful! Download URL: ${downloadURL}`;
-                            console.log('Document uploaded successfully. Download URL:', downloadURL);
-                        });
-                    }
-                );
-            } else {
-                alert('Please select a document to upload.');
+            if (!file) {
+                alert("Please select a file.");
+                return;
             }
-        }
 
-        // Attach event listeners
-        document.getElementById('login-button').addEventListener('click', loginWithEmail);
-        document.getElementById('signup-button').addEventListener('click', signupWithEmail);
-        document.getElementById('upload-button').addEventListener('click', uploadDocument);
+            const user = auth.currentUser;
+            const storageRef = storage.ref().child(`documents/${user.uid}/${file.name}`);
+            const uploadTask = storageRef.put(file);
+
+            uploadTask.on('state_changed',
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    document.getElementById('upload-status').innerText = `Upload is ${progress}% done`;
+                },
+                (error) => alert('Upload failed: ' + error.message),
+                () => {
+                    uploadTask.snapshot.ref.getDownloadURL().then(downloadURL => {
+                        db.collection("users").doc(user.uid).collection("files").add({
+                            name: file.name,
+                            url: downloadURL,
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        document.getElementById('upload-status').innerText = "Upload successful!";
+                        loadUserFiles(user.uid);
+                    });
+                }
+            );
+        });
+
+        // Load User Files
+        function loadUserFiles(userId) {
+            const fileList = document.getElementById('file-list');
+            fileList.innerHTML = "Loading files...";
+            
+            db.collection("users").doc(userId).collection("files").orderBy("timestamp", "desc").get()
+                .then(snapshot => {
+                    fileList.innerHTML = "";
+                    if (snapshot.empty) {
+                        fileList.innerHTML = "No files uploaded yet.";
+                        return;
+                    }
+                    snapshot.forEach(doc => {
+                        const fileData = doc.data();
+                        const fileItem = document.createElement("div");
+                        fileItem.classList.add("file-item");
+                        fileItem.innerHTML = `<a href="${fileData.url}" target="_blank">${fileData.name}</a>`;
+                        fileList.appendChild(fileItem);
+                    });
+                })
+                .catch(error => console.error("Error loading files:", error));
+        }
     </script>
+
 </body>
 </html>
