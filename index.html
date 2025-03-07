@@ -76,6 +76,7 @@
         };
 
         firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();  // Initialize Firestore Database
         const auth = firebase.auth();
         const storage = firebase.storage();
 
@@ -151,36 +152,39 @@
         });
 
 
-        async function loadUserFiles(email) {
-            const userEmail = encodeURIComponent(email); 
-            const fileList = document.getElementById('file-list');
-            fileList.innerHTML = "Loading files...";
-            
-            try {
-                const userFolderRef = storage.ref(`documents/${userEmail}/`);
-                const res = await userFolderRef.listAll();
-
-                if (res.items.length === 0) {
-                    fileList.innerHTML = "No files uploaded yet.";
+        // Function to Load User Files
+        function loadUserFiles(userEmail) {
+            const encodedEmail = encodeURIComponent(userEmail); // Encode to match the upload folder format
+        
+            db.collection("users").doc(encodedEmail).collection("files")
+            .orderBy("timestamp", "desc") // Sort by latest files
+            .get()
+            .then(snapshot => {
+                const fileList = document.getElementById("file-list");
+                fileList.innerHTML = ""; // Clear previous list
+        
+                if (snapshot.empty) {
+                    fileList.innerHTML = "<p>No files found.</p>";
                     return;
                 }
-
-                fileList.innerHTML = "";
-                for (const item of res.items) {
-                    try {
-                        const url = await item.getDownloadURL();
-                        const fileItem = document.createElement("div");
-                        fileItem.classList.add("file-item");
-                        fileItem.innerHTML = `<a href="${url}" target="_blank">${item.name}</a>`;
-                        fileList.appendChild(fileItem);
-                    } catch (error) {
-                        console.error("Error getting file URL:", error);
-                    }
-                }
-            } catch (error) {
-                console.error("Error listing files:", error);
-            }
+        
+                snapshot.forEach(doc => {
+                    const fileData = doc.data();
+                    const listItem = document.createElement("li");
+                    listItem.innerHTML = `<a href="${fileData.url}" target="_blank">${fileData.name}</a>`;
+                    fileList.appendChild(listItem);
+                });
+            })
+            .catch(error => console.error("Error loading files:", error));
         }
+        
+        // Call this function after a successful upload
+        firebase.auth().onAuthStateChanged(user => {
+            if (user) {
+                loadUserFiles(user.email);
+            }
+        });
+
     </script>
 
 </body>
