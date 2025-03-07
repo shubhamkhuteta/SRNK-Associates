@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login and Upload Documents</title>
 
-    <!-- FirebaseUI for Authentication -->
-    <script src="https://www.gstatic.com/firebasejs/ui/6.0.0/firebase-ui-auth.js"></script>
-    <link type="text/css" rel="stylesheet" href="https://www.gstatic.com/firebasejs/ui/6.0.0/firebase-ui-auth.css" />
-    
+    <!-- FirebaseUI for Authentication (This is not needed for this functionality) -->
+    <!--<script src="https://www.gstatic.com/firebasejs/ui/6.0.0/firebase-ui-auth.js"></script>
+    <link type="text/css" rel="stylesheet" href="https://www.gstatic.com/firebasejs/ui/6.0.0/firebase-ui-auth.css" />-->
+
     <!-- Firebase Compatibility SDK for accessing firebase.initializeApp() -->
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
@@ -53,7 +53,7 @@
             apiKey: "AIzaSyB9aamikPRI-98-Tv9IG65vvk4qkO-qTnE",
             authDomain: "srnk-associates.firebaseapp.com",
             projectId: "srnk-associates",
-            storageBucket: "srnk-associates.appspot.com",
+            storageBucket: "srnk-associates.firebasestorage.app",
             messagingSenderId: "138345212232",
             appId: "1:138345212232:web:68746eb7b305a16da86b7d"
         };
@@ -120,7 +120,7 @@
 
             if (file) {
                 const user = auth.currentUser;
-                const storageRef = storage.ref().child(`documents/${user.uid}/${file.name}`);
+                const storageRef = storage.ref().child(`documents/${user.uid}/${file.name}`); // Correct path
                 const uploadTask = storageRef.put(file);
 
                 uploadTask.on('state_changed', 
@@ -135,8 +135,10 @@
                     }, 
                     () => {
                         // Upload complete
-                        document.getElementById('upload-status').innerText = 'Upload successful!';
-                        console.log('Document uploaded successfully');
+                        getDownloadURL(uploadTask.snapshot.ref).then(downloadURL => { // Added getDownloadURL
+                            document.getElementById('upload-status').innerText = `Upload successful! Download URL: ${downloadURL}`;
+                            console.log('Document uploaded successfully. Download URL:', downloadURL);
+                        });
                     }
                 );
             } else {
@@ -150,3 +152,4 @@
         document.getElementById('upload-button').addEventListener('click', uploadDocument);
     </script>
 </body>
+</html>
