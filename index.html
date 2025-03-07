@@ -74,7 +74,7 @@
             apiKey: "AIzaSyB9aamikPRI-98-Tv9IG65vvk4qkO-qTnE",
             authDomain: "srnk-associates.firebaseapp.com",
             projectId: "srnk-associates",
-            storageBucket: "srnk-associates.firebasestorage.app",
+            storageBucket: "srnk-associates.firebasestorage.com",
             messagingSenderId: "138345212232",
             appId: "1:138345212232:web:68746eb7b305a16da86b7d"
         };
@@ -91,7 +91,7 @@
                 document.getElementById('auth-section').style.display = 'none';
                 document.getElementById('upload-section').style.display = 'block';
                 document.getElementById('user-email').innerText = user.email;
-                loadUserFiles(user.uid);
+                loadUserFiles(user.email);
             } else {
                 document.getElementById('auth-section').style.display = 'block';
                 document.getElementById('upload-section').style.display = 'none';
@@ -128,7 +128,8 @@
             }
 
             const user = auth.currentUser;
-            const storageRef = storage.ref().child(`documents/${user.uid}/${file.name}`);
+            const userEmail = user.email.replace(/\./g, "_"); // Firebase doesn't allow "." in paths
+            const storageRef = storage.ref().child(`documents/${userEmail}/${file.name}`);
             const uploadTask = storageRef.put(file);
 
             uploadTask.on('state_changed',
@@ -139,24 +140,25 @@
                 (error) => alert('Upload failed: ' + error.message),
                 () => {
                     uploadTask.snapshot.ref.getDownloadURL().then(downloadURL => {
-                        db.collection("users").doc(user.uid).collection("files").add({
+                        db.collection("users").doc(userEmail).collection("files").add({
                             name: file.name,
                             url: downloadURL,
                             timestamp: firebase.firestore.FieldValue.serverTimestamp()
                         });
                         document.getElementById('upload-status').innerText = "Upload successful!";
-                        loadUserFiles(user.uid);
+                        loadUserFiles(user.email);
                     });
                 }
             );
         });
 
         // Load User Files
-        function loadUserFiles(userId) {
+        function loadUserFiles(email) {
+            const userEmail = email.replace(/\./g, "_");
             const fileList = document.getElementById('file-list');
             fileList.innerHTML = "Loading files...";
             
-            db.collection("users").doc(userId).collection("files").orderBy("timestamp", "desc").get()
+            db.collection("users").doc(userEmail).collection("files").orderBy("timestamp", "desc").get()
                 .then(snapshot => {
                     fileList.innerHTML = "";
                     if (snapshot.empty) {
@@ -177,3 +179,4 @@
 
 </body>
 </html>
+
