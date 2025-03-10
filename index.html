@@ -85,7 +85,8 @@
                 document.getElementById('auth-section').style.display = 'none';
                 document.getElementById('upload-section').style.display = 'block';
                 document.getElementById('user-email').innerText = user.email;
-                loadUserFiles(user.email);
+    
+                loadUserFiles(user.email); // Load existing files on sign-in
             } else {
                 document.getElementById('auth-section').style.display = 'block';
                 document.getElementById('upload-section').style.display = 'none';
@@ -152,37 +153,40 @@
         });
 
 
-        // Function to Load User Files
+            // Function to Load User Files
         function loadUserFiles(userEmail) {
-            const encodedEmail = encodeURIComponent(userEmail); // Encode to match the upload folder format
-        
+            const encodedEmail = encodeURIComponent(userEmail);
+            const fileList = document.getElementById("file-list");
+            fileList.innerHTML = "<p>Loading files...</p>";
+    
+            // Real-time updates using onSnapshot()
             db.collection("users").doc(encodedEmail).collection("files")
-            .orderBy("timestamp", "desc") // Sort by latest files
-            .get()
-            .then(snapshot => {
-                const fileList = document.getElementById("file-list");
-                fileList.innerHTML = ""; // Clear previous list
-        
-                if (snapshot.empty) {
-                    fileList.innerHTML = "<p>No files found.</p>";
-                    return;
-                }
-        
-                snapshot.forEach(doc => {
-                    const fileData = doc.data();
-                    const listItem = document.createElement("li");
-                    listItem.innerHTML = `<a href="${fileData.url}" target="_blank">${fileData.name}</a>`;
-                    fileList.appendChild(listItem);
-                });
-            })
-            .catch(error => console.error("Error loading files:", error));
+                .orderBy("timestamp", "desc")
+                .onSnapshot(snapshot => {
+                    fileList.innerHTML = ""; // Clear previous list
+                    if (snapshot.empty) {
+                        fileList.innerHTML = "<p>No files found.</p>";
+                        return;
+                    }
+    
+                    snapshot.forEach(doc => {
+                        const fileData = doc.data();
+                        const listItem = document.createElement("div");
+                        listItem.className = "file-item";
+                        listItem.innerHTML = `<a href="${fileData.url}" target="_blank">${fileData.name}</a>`;
+                        fileList.appendChild(listItem);
+                    });
+                }, error => console.error("Error loading files:", error));
         }
-        
-        // Call this function after a successful upload
-        firebase.auth().onAuthStateChanged(user => {
-            if (user) {
-                loadUserFiles(user.email);
-            }
+    
+        document.getElementById('login-button').addEventListener('click', () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            auth.signInWithEmailAndPassword(email, password)
+                .then(() => {
+                    loadUserFiles(email); // Ensure files are loaded immediately
+                })
+                .catch(error => alert(error.message));
         });
 
     </script>
