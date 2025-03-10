@@ -108,59 +108,94 @@
             auth.signOut();
         });
 
-        document.getElementById('upload-button').addEventListener('click', () => {
-            const file = document.getElementById('file-upload').files[0];
+        import { getAuth } from "firebase/auth";
+        import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+        import { getFirestore, doc, setDoc, serverTimestamp } from "firebase/firestore";
+        import { getStorage, ref, listAll, getDownloadURL } from "firebase/storage";
+        
+        // Upload File Function
+        document.getElementById("upload-button").addEventListener("click", async () => {
+            const file = document.getElementById("file-upload").files[0];
+        
             if (!file) {
                 alert("Please select a file.");
                 return;
             }
-
+        
+            const auth = getAuth();
             const user = auth.currentUser;
+        
             if (!user) {
                 alert("No user logged in.");
                 return;
             }
-
-            const userEmail = encodeURIComponent(user.email);
-            const storageRef = storage.ref(`documents/${userEmail}/${file.name}`);
-            const uploadTask = storageRef.put(file);
-
-            uploadTask.on('state_changed',
-                snapshot => {
+        
+            const userId = user.uid;  // Use UID instead of email for security
+            const storage = getStorage();
+            const firestore = getFirestore();
+            const storageRef = ref(storage, `documents/${userId}/${file.name}`);
+            const uploadTask = uploadBytesResumable(storageRef, file);
+        
+            uploadTask.on(
+                "state_changed",
+                (snapshot) => {
                     const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    document.getElementById('upload-status').innerText = `Upload is ${progress.toFixed(0)}% done`;
+                    document.getElementById("upload-status").innerText = `Upload is ${progress.toFixed(0)}% done`;
                 },
-                error => alert('Upload failed: ' + error.message),
-                () => {
-                    uploadTask.snapshot.ref.getDownloadURL().then(downloadURL => {
-                        db.collection("users").doc(userEmail).collection("files").add({
+                (error) => {
+                    alert("Upload failed: " + error.message);
+                },
+                async () => {
+                    try {
+                        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+        
+                        // Save file metadata to Firestore
+                        await setDoc(doc(firestore, "users", userId, "files", file.name), {
                             name: file.name,
                             url: downloadURL,
-                            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                        }).then(() => {
-                            document.getElementById('upload-status').innerText = "Upload successful!";
-                            loadUserFiles(user.email);
-                        }).catch(error => alert("Error saving file info: " + error.message));
-                    });
+                            timestamp: serverTimestamp()
+                        });
+        
+                        document.getElementById("upload-status").innerText = "Upload successful!";
+                        loadUserFiles();  // Refresh the file list after upload
+                    } catch (error) {
+                        alert("Error saving file info: " + error.message);
+                    }
                 }
             );
         });
 
-        async function loadUserFiles(email) {
-            const userEmail = encodeURIComponent(email);
-            const fileList = document.getElementById('file-list');
+
+        async function loadUserFiles() {
+            const auth = getAuth();
+            const user = auth.currentUser;
+        
+            if (!user) {
+                console.error("User not authenticated");
+                return;
+            }
+        
+            const userId = user.uid; // Use UID instead of email for security
+            const storage = getStorage();
+            const fileList = document.getElementById("file-list");
             fileList.innerHTML = "Loading files...";
+        
             try {
-                const res = await storage.ref(`documents/${userEmail}/`).listAll();
+                const directoryRef = ref(storage, `documents/${userId}/`);
+                const res = await listAll(directoryRef);
+        
                 fileList.innerHTML = res.items.length ? "" : "No files uploaded yet.";
+        
                 for (const item of res.items) {
-                    const url = await item.getDownloadURL();
+                    const url = await getDownloadURL(item);
                     fileList.innerHTML += `<div class='file-item'><a href='${url}' target='_blank'>${item.name}</a></div>`;
                 }
             } catch (error) {
                 console.error("Error listing files:", error);
+                fileList.innerHTML = "Error loading files.";
             }
         }
+
     </script>
 </body>
 </html>
