@@ -8,6 +8,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
 
     <style>
         body {
@@ -39,7 +40,6 @@
     </style>
 </head>
 <body>
-
     <div id="auth-section" class="container">
         <h2>Login</h2>
         <input type="email" id="email" placeholder="Email" required>
@@ -78,6 +78,7 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const storage = firebase.storage();
+        const db = firebase.firestore();
 
         auth.onAuthStateChanged(user => {
             if (user) {
@@ -94,95 +95,72 @@
         document.getElementById('login-button').addEventListener('click', () => {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            auth.signInWithEmailAndPassword(email, password)
-                .catch(error => alert(error.message));
+            auth.signInWithEmailAndPassword(email, password).catch(error => alert(error.message));
         });
 
         document.getElementById('signup-button').addEventListener('click', () => {
             const email = document.getElementById('new-email').value;
             const password = document.getElementById('new-password').value;
-            auth.createUserWithEmailAndPassword(email, password)
-                .catch(error => alert(error.message));
+            auth.createUserWithEmailAndPassword(email, password).catch(error => alert(error.message));
         });
 
         document.getElementById('logout-button').addEventListener('click', () => {
             auth.signOut();
         });
 
-        // Upload File Function
         document.getElementById('upload-button').addEventListener('click', () => {
             const file = document.getElementById('file-upload').files[0];
             if (!file) {
                 alert("Please select a file.");
                 return;
             }
-        
+
             const user = auth.currentUser;
             if (!user) {
                 alert("No user logged in.");
                 return;
             }
-        
-            const userEmail = encodeURIComponent(user.email); // Properly encode email for consistent folder naming
-            const storageRef = firebase.storage().ref(`documents/${userEmail}/${file.name}`);
+
+            const userEmail = encodeURIComponent(user.email);
+            const storageRef = storage.ref(`documents/${userEmail}/${file.name}`);
             const uploadTask = storageRef.put(file);
-        
+
             uploadTask.on('state_changed',
-                (snapshot) => {
+                snapshot => {
                     const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
                     document.getElementById('upload-status').innerText = `Upload is ${progress.toFixed(0)}% done`;
                 },
-                (error) => alert('Upload failed: ' + error.message),
+                error => alert('Upload failed: ' + error.message),
                 () => {
                     uploadTask.snapshot.ref.getDownloadURL().then(downloadURL => {
                         db.collection("users").doc(userEmail).collection("files").add({
                             name: file.name,
                             url: downloadURL,
                             timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                        })
-                        .then(() => {
+                        }).then(() => {
                             document.getElementById('upload-status').innerText = "Upload successful!";
-                            loadUserFiles(user.email); // Reload files after upload
-                        })
-                        .catch(error => alert("Error saving file info: " + error.message));
+                            loadUserFiles(user.email);
+                        }).catch(error => alert("Error saving file info: " + error.message));
                     });
                 }
             );
         });
 
-
         async function loadUserFiles(email) {
-            const userEmail = encodeURIComponent(email); 
+            const userEmail = encodeURIComponent(email);
             const fileList = document.getElementById('file-list');
             fileList.innerHTML = "Loading files...";
-            
             try {
-                const userFolderRef = storage.ref(`documents/${userEmail}/`);
-                const res = await userFolderRef.listAll();
-
-                if (res.items.length === 0) {
-                    fileList.innerHTML = "No files uploaded yet.";
-                    return;
-                }
-
-                fileList.innerHTML = "";
+                const res = await storage.ref(`documents/${userEmail}/`).listAll();
+                fileList.innerHTML = res.items.length ? "" : "No files uploaded yet.";
                 for (const item of res.items) {
-                    try {
-                        const url = await item.getDownloadURL();
-                        const fileItem = document.createElement("div");
-                        fileItem.classList.add("file-item");
-                        fileItem.innerHTML = `<a href="${url}" target="_blank">${item.name}</a>`;
-                        fileList.appendChild(fileItem);
-                    } catch (error) {
-                        console.error("Error getting file URL:", error);
-                    }
+                    const url = await item.getDownloadURL();
+                    fileList.innerHTML += `<div class='file-item'><a href='${url}' target='_blank'>${item.name}</a></div>`;
                 }
             } catch (error) {
                 console.error("Error listing files:", error);
             }
         }
     </script>
-
 </body>
 </html>
-
